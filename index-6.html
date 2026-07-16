@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="theme-color" content="#2b2620"/>
+<title>Williston Homes — Build Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<style>*{box-sizing:border-box;margin:0;padding:0;}html,body,#root{height:100%;}body{font-family:'Inter',system-ui,sans-serif;background:#f7f4ee;-webkit-font-smoothing:antialiased;}input,select,textarea,button{font-family:inherit;}</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  // ---- Firebase init (compat) ----
+  firebase.initializeApp({
+    apiKey: "AIzaSyAuGGnu9n7Xt8UKFnxmHO7DD2rT5SoDvAc",
+    authDomain: "williston-homes.firebaseapp.com",
+    projectId: "williston-homes",
+    storageBucket: "williston-homes.firebasestorage.app",
+    messagingSenderId: "291408261814",
+    appId: "1:291408261814:web:d4562a22476c6ff8d86c17",
+    measurementId: "G-8N4S9HX5Z6"
+  });
+  var auth = firebase.auth();
+  var db = firebase.firestore();
+  var storage = firebase.storage();
+</script>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useCallback, useRef } = React;
+/* ---------- Inline icon set (replaces lucide-react) ---------- */
+const ICON_PATHS = {
+  Home: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+  Plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  Trash2: '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  Camera: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+  Receipt: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/>',
+  FileText: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/>',
+  ClipboardList: '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="12" y1="11" x2="16" y2="11"/><line x1="12" y1="16" x2="16" y2="16"/><line x1="8" y1="11" x2="8.01" y2="11"/><line x1="8" y1="16" x2="8.01" y2="16"/>',
+  TrendingUp: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+  Package: '<line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
+  Building2: '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>',
+  ArrowLeft: '<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
+  Edit2: '<path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>',
+  Upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+  ChevronRight: '<polyline points="9 18 15 12 9 6"/>',
+  ChevronDown: '<polyline points="6 9 12 15 18 9"/>',
+  X: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  CheckSquare: '<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+  LogOut: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+};
+function Icon({ name, size = 18, color = "currentColor", strokeWidth = 2, style }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
+      fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
+      style={style} dangerouslySetInnerHTML={{ __html: ICON_PATHS[name] || "" }} />
+  );
+}
+// Shorthand components so the app code reads naturally
+const Home=(p)=><Icon name="Home" {...p}/>, Plus=(p)=><Icon name="Plus" {...p}/>, Trash2=(p)=><Icon name="Trash2" {...p}/>,
+  Camera=(p)=><Icon name="Camera" {...p}/>, Receipt=(p)=><Icon name="Receipt" {...p}/>, FileText=(p)=><Icon name="FileText" {...p}/>,
+  ClipboardList=(p)=><Icon name="ClipboardList" {...p}/>, TrendingUp=(p)=><Icon name="TrendingUp" {...p}/>, Package=(p)=><Icon name="Package" {...p}/>,
+  Building2=(p)=><Icon name="Building2" {...p}/>, ArrowLeft=(p)=><Icon name="ArrowLeft" {...p}/>, Edit2=(p)=><Icon name="Edit2" {...p}/>,
+  Upload=(p)=><Icon name="Upload" {...p}/>, ChevronRight=(p)=><Icon name="ChevronRight" {...p}/>, ChevronDown=(p)=><Icon name="ChevronDown" {...p}/>,
+  X=(p)=><Icon name="X" {...p}/>, CheckSquare=(p)=><Icon name="CheckSquare" {...p}/>, LogOut=(p)=><Icon name="LogOut" {...p}/>;
+
+/* ---------- Construction stage template ---------- */
+const STAGE_TEMPLATE = [
+  { key: "plans", name: "Plans" },
+  { key: "permitting", name: "Permitting" },
+  { key: "sitework", name: "Site Work / Excavation" },
+  { key: "concrete", name: "Concrete / Foundation" },
+  { key: "framing", name: "Framing" },
+  { key: "windows", name: "Windows" },
+  { key: "roofing", name: "Roofing" },
+  { key: "siding", name: "Siding" },
+  { key: "soffit", name: "Soffit & Fascia" },
+  { key: "plumbing", name: "Plumbing" },
+  { key: "heating", name: "Heating / HVAC" },
+  { key: "electrical", name: "Electrical" },
+  { key: "insulation", name: "Insulation" },
+  { key: "sheetrock", name: "Sheet Rock / Drywall" },
+  { key: "paint", name: "Paint" },
+  { key: "cabinets", name: "Cabinets" },
+  { key: "counters", name: "Counters" },
+  { key: "flooring", name: "Flooring" },
+  { key: "trim", name: "Trim / Millwork" },
+  { key: "fixtures", name: "Fixtures & Finishes" },
+  { key: "final", name: "Final / Punch List" },
+];
+const CATEGORIES = STAGE_TEMPLATE.map((s) => s.name).concat(["Labor", "Permits/Fees", "Other"]);
+const money = (n) => (n < 0 ? "-$" : "$") + Math.abs(Number(n) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+function newHouseData(name) {
+  return {
+    name, address: "", createdAt: Date.now(),
+    receipts: [], estimates: [], photos: [],
+    stages: STAGE_TEMPLATE.map((s) => ({ key: s.key, name: s.name, done: false, completionItems: [], materialItems: [], estimatedCost: 0, note: "" })),
+  };
+}
+function fileToCompressedDataURL(file, maxDim = 1280, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) { height = Math.round((height * maxDim) / width); width = maxDim; }
+        else if (height > maxDim) { width = Math.round((width * maxDim) / height); height = maxDim; }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject; img.src = e.target.result;
+    };
+    reader.onerror = reject; reader.readAsDataURL(file);
+  });
+}
+async function uploadImage(houseId, folder, dataUrl) {
+  const path = `houses/${houseId}/${folder}/${uid()}.jpg`;
+  const sref = storage.ref(path);
+  await sref.putString(dataUrl, "data_url");
+  const url = await sref.getDownloadURL();
+  return { url, path };
+}
+async function removeImage(path) {
+  if (!path) return;
+  try { await storage.ref(path).delete(); } catch (e) {}
+}
+function App() {
+  const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    return auth.onAuthStateChanged((u) => { setUser(u); setAuthReady(true); });
+  }, []);
+
+  if (!authReady) return <div style={S.loading}>Loading…</div>;
+  if (!user) return <Login />;
+  return <Dashboard user={user} />;
+}
+
+/* ================= Login / Setup ================= */
+function Login() {
+  const [mode, setMode] = useState("login"); // login | setup
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    setErr(""); setBusy(true);
+    try {
+      if (mode === "login") {
+        await auth.signInWithEmailAndPassword(email.trim(), password);
+      } else {
+        await auth.createUserWithEmailAndPassword(email.trim(), password);
+      }
+    } catch (e) {
+      setErr(friendlyAuthError(e.code));
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div style={S.authWrap}>
+      <div style={S.authCard}>
+        <div style={S.logoMarkLg}><Home size={26} color="#fff" /></div>
+        <div style={S.authTitle}>WILLISTON HOMES</div>
+        <div style={S.authSub}>Build Manager</div>
+
+        <input style={S.input} placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input style={{ ...S.input, marginTop: 10 }} placeholder="Password" type="password" value={password}
+          onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} />
+
+        {err && <div style={S.authErr}>{err}</div>}
+
+        <button style={{ ...S.primaryBtn, width: "100%", justifyContent: "center", marginTop: 14, padding: "12px" }} onClick={submit} disabled={busy}>
+          {busy ? "Please wait…" : mode === "login" ? "Sign In" : "Create Account"}
+        </button>
+
+        <button style={S.linkBtn} onClick={() => { setMode(mode === "login" ? "setup" : "login"); setErr(""); }}>
+          {mode === "login" ? "First time setup — create an account" : "← Back to sign in"}
+        </button>
+      </div>
+      <div style={S.authFoot}>Williston Homes LLC · Build Manager</div>
+    </div>
+  );
+}
+
+function friendlyAuthError(code) {
+  const map = {
+    "auth/invalid-email": "That email address looks invalid.",
+    "auth/user-not-found": "No account found for that email.",
+    "auth/wrong-password": "Incorrect password.",
+    "auth/invalid-credential": "Email or password is incorrect.",
+    "auth/email-already-in-use": "An account already exists for that email.",
+    "auth/weak-password": "Password must be at least 6 characters.",
+  };
+  return map[code] || "Something went wrong. Please try again.";
+}
+
+/* ================= Dashboard (houses live from Firestore) ================= */
+function Dashboard({ user }) {
+  const [houses, setHouses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeId, setActiveId] = useState(null);
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [tab, setTab] = useState("overview");
+
+  useEffect(() => {
+    const q = db.collection("houses").orderBy("createdAt", "asc");
+    return q.onSnapshot((snap) => {
+      setHouses(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    });
+  }, []);
+
+  const active = houses.find((h) => h.id === activeId) || null;
+
+  const persist = useCallback(async (house) => {
+    const { id, ...data } = house;
+    await db.collection("houses").doc(id).set({ ...data, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  }, []);
+
+  const createHouse = async () => {
+    const name = newName.trim();
+    if (!name) return;
+    const id = uid();
+    await db.collection("houses").doc(id).set({ ...newHouseData(name), createdAt: Date.now() });
+    setNewName(""); setAdding(false); setActiveId(id);
+  };
+
+  const removeHouse = async (id) => {
+    if (!confirm("Delete this house and all its data? This cannot be undone.")) return;
+    await db.collection("houses").doc(id).delete();
+    if (activeId === id) setActiveId(null);
+  };
+
+  if (loading) return <div style={S.loading}>Loading projects…</div>;
+
+  /* ---- House list ---- */
+  if (!active) {
+    return (
+      <div style={S.app}>
+        <Header user={user} />
+        <div style={S.container}>
+          <div style={S.listHeader}>
+            <h2 style={S.h2}>Projects</h2>
+            <button style={S.primaryBtn} onClick={() => setAdding(true)}><Plus size={16} /> New House</button>
+          </div>
+
+          {adding && (
+            <div style={S.addCard}>
+              <input autoFocus style={S.input} placeholder="House name / address (e.g. 1420 12th St W)"
+                value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && createHouse()} />
+              <div style={{ display: "flex", gap: 8 }}>
+                <button style={S.primaryBtn} onClick={createHouse}>Create</button>
+                <button style={S.ghostBtn} onClick={() => { setAdding(false); setNewName(""); }}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {houses.length === 0 && !adding && (
+            <div style={S.empty}>
+              <Building2 size={40} strokeWidth={1.3} color="#9a8f7a" />
+              <p style={{ color: "#7a7266", marginTop: 12 }}>No houses yet. Add your first build to get started.</p>
+            </div>
+          )}
+
+          <div style={S.grid}>
+            {houses.map((h) => (
+              <HouseCard key={h.id} house={h} onOpen={() => { setActiveId(h.id); setTab("overview"); }} onDelete={() => removeHouse(h.id)} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---- Single house ---- */
+  const TABS = [
+    { key: "overview", label: "Overview", icon: Home },
+    { key: "pl", label: "P&L", icon: TrendingUp },
+    { key: "receipts", label: "Receipts", icon: Receipt },
+    { key: "estimates", label: "Estimates", icon: FileText },
+    { key: "stages", label: "Stages", icon: ClipboardList },
+    { key: "photos", label: "Photos", icon: Camera },
+  ];
+
+  return (
+    <div style={S.app}>
+      <Header user={user} />
+      <div style={S.houseBar}>
+        <button style={S.backBtn} onClick={() => setActiveId(null)}><ArrowLeft size={16} /> All Houses</button>
+        <HouseTitle house={active} onChange={persist} />
+      </div>
+      <div style={S.tabBar}>
+        {TABS.map((t) => {
+          const Icon = t.icon;
+          return (
+            <button key={t.key} style={{ ...S.tab, ...(tab === t.key ? S.tabActive : {}) }} onClick={() => setTab(t.key)}>
+              <Icon size={15} /> {t.label}
+            </button>
+          );
+        })}
+      </div>
+      <div style={S.container}>
+        {tab === "overview" && <Overview house={active} setTab={setTab} />}
+        {tab === "pl" && <PL house={active} />}
+        {tab === "receipts" && <Receipts house={active} persist={persist} />}
+        {tab === "estimates" && <Estimates house={active} persist={persist} />}
+        {tab === "stages" && <Stages house={active} persist={persist} />}
+        {tab === "photos" && <Photos house={active} persist={persist} />}
+      </div>
+    </div>
+  );
+}
+
+/* ================= Header ================= */
+function Header({ user }) {
+  return (
+    <div style={S.header}>
+      <div style={S.logo}>
+        <div style={S.logoMark}><Home size={18} color="#fff" /></div>
+        <div>
+          <div style={S.logoText}>WILLISTON HOMES</div>
+          <div style={S.logoSub}>Build Manager</div>
+        </div>
+      </div>
+      <div style={S.headerRight}>
+        <span style={S.userEmail}>{user.email}</span>
+        <button style={S.logoutBtn} onClick={() => auth.signOut()} title="Sign out"><LogOut size={15} /></button>
+      </div>
+    </div>
+  );
+}
+
+function HouseCard({ house, onOpen, onDelete }) {
+  const spent = house.receipts.reduce((a, r) => a + (Number(r.amount) || 0), 0);
+  const doneStages = house.stages.filter((s) => s.done).length;
+  const total = house.stages.length;
+  return (
+    <div style={S.houseCard}>
+      <div style={{ cursor: "pointer", flex: 1 }} onClick={onOpen}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+          <div style={S.houseIcon}><Home size={18} color="#8a5a2b" /></div>
+          <div style={S.houseName}>{house.name}</div>
+        </div>
+        <div style={S.progressTrack}><div style={{ ...S.progressFill, width: `${(doneStages / total) * 100}%` }} /></div>
+        <div style={S.cardStats}>
+          <span>{doneStages}/{total} stages</span>
+          <span style={{ color: "#8a5a2b", fontWeight: 600 }}>{money(spent)} spent</span>
+        </div>
+      </div>
+      <button style={S.iconDanger} onClick={onDelete} title="Delete house"><Trash2 size={15} /></button>
+    </div>
+  );
+}
+
+function HouseTitle({ house, onChange }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(house.name);
+  const [addr, setAddr] = useState(house.address || "");
+  useEffect(() => { setName(house.name); setAddr(house.address || ""); }, [house.id]);
+  if (editing) {
+    return (
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <input style={{ ...S.input, width: 200 }} value={name} onChange={(e) => setName(e.target.value)} placeholder="House name" />
+        <input style={{ ...S.input, width: 200 }} value={addr} onChange={(e) => setAddr(e.target.value)} placeholder="Address" />
+        <button style={S.primaryBtn} onClick={() => { onChange({ ...house, name: name.trim() || house.name, address: addr }); setEditing(false); }}>Save</button>
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div>
+        <div style={S.houseTitle}>{house.name}</div>
+        {house.address && <div style={S.houseAddr}>{house.address}</div>}
+      </div>
+      <button style={S.iconGhost} onClick={() => setEditing(true)}><Edit2 size={14} /></button>
+    </div>
+  );
+}
+
+/* ================= Overview ================= */
+function Overview({ house, setTab }) {
+  const spent = house.receipts.reduce((a, r) => a + (Number(r.amount) || 0), 0);
+  const estTotal = house.estimates.reduce((a, e) => a + (Number(e.amount) || 0), 0);
+  const stageEst = house.stages.reduce((a, s) => a + (Number(s.estimatedCost) || 0), 0);
+  const budget = estTotal || stageEst;
+  const doneStages = house.stages.filter((s) => s.done).length;
+  const openMaterials = house.stages.reduce((a, s) => a + s.materialItems.filter((m) => !m.ordered).length, 0);
+
+  return (
+    <div>
+      <div style={S.metricGrid}>
+        <Metric label="Total Spent" value={money(spent)} accent="#8a5a2b" />
+        <Metric label="Budget / Est." value={money(budget)} />
+        <Metric label={budget ? "Remaining" : "No budget set"} value={budget ? money(budget - spent) : "—"} accent={budget - spent < 0 ? "#b3261e" : "#2e7d32"} />
+        <Metric label="Stages Done" value={`${doneStages} / ${house.stages.length}`} />
+      </div>
+      <div style={{ ...S.metricGrid, marginTop: 12 }}>
+        <Metric label="Receipts Logged" value={house.receipts.length} />
+        <Metric label="Photos" value={house.photos.length} />
+        <Metric label="Materials to Order" value={openMaterials} accent={openMaterials > 0 ? "#b3691e" : "#2e7d32"} />
+        <Metric label="Estimates" value={house.estimates.length} />
+      </div>
+      <h3 style={S.h3}>Stage progress</h3>
+      <div style={S.stageStrip}>
+        {house.stages.map((s) => (
+          <div key={s.key} title={s.name} style={{ ...S.stageDot, background: s.done ? "#2e7d32" : "#e4ddd0", color: s.done ? "#fff" : "#8a8275" }}>{s.done ? "✓" : ""}</div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
+        <button style={S.actionBtn} onClick={() => setTab("receipts")}><Receipt size={16} /> Add Receipt</button>
+        <button style={S.actionBtn} onClick={() => setTab("photos")}><Camera size={16} /> Add Photo</button>
+        <button style={S.actionBtn} onClick={() => setTab("stages")}><ClipboardList size={16} /> Checklists</button>
+      </div>
+    </div>
+  );
+}
+
+function Metric({ label, value, accent }) {
+  return (
+    <div style={S.metric}>
+      <div style={S.metricLabel}>{label}</div>
+      <div style={{ ...S.metricValue, color: accent || "#2b2620" }}>{value}</div>
+    </div>
+  );
+}
+
+/* ================= P&L ================= */
+function PL({ house }) {
+  const byCat = {}, estByCat = {};
+  house.receipts.forEach((r) => { const c = r.category || "Other"; byCat[c] = (byCat[c] || 0) + (Number(r.amount) || 0); });
+  house.estimates.forEach((e) => { const c = e.category || "Other"; estByCat[c] = (estByCat[c] || 0) + (Number(e.amount) || 0); });
+  const cats = Array.from(new Set([...Object.keys(byCat), ...Object.keys(estByCat)])).sort();
+  const totalSpent = house.receipts.reduce((a, r) => a + (Number(r.amount) || 0), 0);
+  const totalEst = house.estimates.reduce((a, e) => a + (Number(e.amount) || 0), 0);
+  return (
+    <div>
+      <div style={S.metricGrid}>
+        <Metric label="Estimated" value={money(totalEst)} />
+        <Metric label="Actual Spent" value={money(totalSpent)} accent="#8a5a2b" />
+        <Metric label="Variance" value={money(totalEst - totalSpent)} accent={totalEst - totalSpent < 0 ? "#b3261e" : "#2e7d32"} />
+      </div>
+      <h3 style={S.h3}>Cost by category</h3>
+      <div style={S.tableWrap}>
+        <table style={S.table}>
+          <thead><tr>
+            <th style={S.th}>Category</th>
+            <th style={{ ...S.th, textAlign: "right" }}>Estimated</th>
+            <th style={{ ...S.th, textAlign: "right" }}>Actual</th>
+            <th style={{ ...S.th, textAlign: "right" }}>Variance</th>
+          </tr></thead>
+          <tbody>
+            {cats.length === 0 && <tr><td colSpan={4} style={{ ...S.td, textAlign: "center", color: "#9a8f7a" }}>No costs logged yet.</td></tr>}
+            {cats.map((c) => {
+              const est = estByCat[c] || 0, act = byCat[c] || 0;
+              return (
+                <tr key={c}>
+                  <td style={S.td}>{c}</td>
+                  <td style={{ ...S.td, textAlign: "right" }}>{money(est)}</td>
+                  <td style={{ ...S.td, textAlign: "right", fontWeight: 600 }}>{money(act)}</td>
+                  <td style={{ ...S.td, textAlign: "right", color: est - act < 0 ? "#b3261e" : "#2e7d32" }}>{money(est - act)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot><tr>
+            <td style={{ ...S.td, ...S.totalRow }}>Total</td>
+            <td style={{ ...S.td, ...S.totalRow, textAlign: "right" }}>{money(totalEst)}</td>
+            <td style={{ ...S.td, ...S.totalRow, textAlign: "right" }}>{money(totalSpent)}</td>
+            <td style={{ ...S.td, ...S.totalRow, textAlign: "right", color: totalEst - totalSpent < 0 ? "#b3261e" : "#2e7d32" }}>{money(totalEst - totalSpent)}</td>
+          </tr></tfoot>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ================= Receipts ================= */
+function Receipts({ house, persist }) {
+  const [form, setForm] = useState({ vendor: "", category: "", amount: "", date: new Date().toISOString().slice(0, 10), note: "" });
+  const [photo, setPhoto] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef();
+
+  const onPhoto = async (e) => {
+    const f = e.target.files?.[0]; if (!f) return;
+    setBusy(true);
+    try { setPhoto(await fileToCompressedDataURL(f)); } catch { alert("Could not read image."); }
+    setBusy(false);
+  };
+
+  const add = async () => {
+    if (!form.amount) { alert("Enter an amount."); return; }
+    setBusy(true);
+    let img = null;
+    if (photo) { try { img = await uploadImage(house.id, "receipts", photo); } catch { alert("Photo upload failed; saving without it."); } }
+    const receipt = { id: uid(), ...form, amount: Number(form.amount), photo: img?.url || null, photoPath: img?.path || null };
+    await persist({ ...house, receipts: [receipt, ...house.receipts] });
+    setForm({ vendor: "", category: "", amount: "", date: new Date().toISOString().slice(0, 10), note: "" });
+    setPhoto(null); setBusy(false);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const remove = async (r) => {
+    await removeImage(r.photoPath);
+    await persist({ ...house, receipts: house.receipts.filter((x) => x.id !== r.id) });
+  };
+
+  const total = house.receipts.reduce((a, r) => a + (Number(r.amount) || 0), 0);
+  return (
+    <div>
+      <div style={S.formCard}>
+        <div style={S.formGrid}>
+          <input style={S.input} placeholder="Vendor / store" value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} />
+          <select style={S.input} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+            <option value="">Category…</option>
+            {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <input style={S.input} type="number" step="0.01" placeholder="Amount" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+          <input style={S.input} type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+        </div>
+        <input style={{ ...S.input, marginTop: 10 }} placeholder="Note (optional)" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+        <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10, flexWrap: "wrap" }}>
+          <label style={S.uploadBtn}>
+            <Upload size={15} /> {photo ? "Change Photo" : "Attach Receipt Photo"}
+            <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={onPhoto} style={{ display: "none" }} />
+          </label>
+          {busy && <span style={{ color: "#9a8f7a", fontSize: 13 }}>Working…</span>}
+          {photo && <img src={photo} alt="receipt" style={S.thumb} />}
+          <button style={{ ...S.primaryBtn, marginLeft: "auto" }} onClick={add} disabled={busy}><Plus size={16} /> Add Receipt</button>
+        </div>
+      </div>
+      <div style={S.subHead}><span>{house.receipts.length} receipts</span><span style={{ color: "#8a5a2b", fontWeight: 700 }}>{money(total)}</span></div>
+      <div style={S.list}>
+        {house.receipts.map((r) => (
+          <div key={r.id} style={S.receiptRow}>
+            {r.photo ? <img src={r.photo} alt="" style={S.receiptThumb} onClick={() => window.open(r.photo)} /> : <div style={S.receiptNoPhoto}><Receipt size={18} color="#b8ac97" /></div>}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, color: "#2b2620" }}>{r.vendor || "(no vendor)"}</div>
+              <div style={{ fontSize: 12, color: "#8a8275" }}>{r.category || "Uncategorized"} · {r.date}</div>
+              {r.note && <div style={{ fontSize: 12, color: "#9a8f7a", marginTop: 2 }}>{r.note}</div>}
+            </div>
+            <div style={{ fontWeight: 700, color: "#8a5a2b", whiteSpace: "nowrap" }}>{money(r.amount)}</div>
+            <button style={S.iconDanger} onClick={() => remove(r)}><Trash2 size={15} /></button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ================= Estimates ================= */
+function Estimates({ house, persist }) {
+  const [form, setForm] = useState({ label: "", category: "", amount: "", note: "" });
+  const add = async () => {
+    if (!form.label && !form.amount) return;
+    const est = { id: uid(), ...form, amount: Number(form.amount) || 0 };
+    await persist({ ...house, estimates: [est, ...house.estimates] });
+    setForm({ label: "", category: "", amount: "", note: "" });
+  };
+  const remove = async (id) => persist({ ...house, estimates: house.estimates.filter((e) => e.id !== id) });
+  const total = house.estimates.reduce((a, e) => a + (Number(e.amount) || 0), 0);
+  return (
+    <div>
+      <div style={S.formCard}>
+        <div style={S.formGrid}>
+          <input style={S.input} placeholder="Estimate label (e.g. Framing bid — ABC)" value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} />
+          <select style={S.input} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+            <option value="">Category…</option>
+            {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <input style={S.input} type="number" step="0.01" placeholder="Amount" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+          <button style={S.primaryBtn} onClick={add}><Plus size={16} /> Add</button>
+        </div>
+        <input style={{ ...S.input, marginTop: 10 }} placeholder="Note (scope, contractor, terms…)" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+      </div>
+      <div style={S.subHead}><span>{house.estimates.length} estimates</span><span style={{ color: "#8a5a2b", fontWeight: 700 }}>{money(total)}</span></div>
+      <div style={S.list}>
+        {house.estimates.map((e) => (
+          <div key={e.id} style={S.receiptRow}>
+            <div style={S.receiptNoPhoto}><FileText size={18} color="#b8ac97" /></div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, color: "#2b2620" }}>{e.label || "(untitled)"}</div>
+              <div style={{ fontSize: 12, color: "#8a8275" }}>{e.category || "Uncategorized"}</div>
+              {e.note && <div style={{ fontSize: 12, color: "#9a8f7a", marginTop: 2 }}>{e.note}</div>}
+            </div>
+            <div style={{ fontWeight: 700, color: "#8a5a2b", whiteSpace: "nowrap" }}>{money(e.amount)}</div>
+            <button style={S.iconDanger} onClick={() => remove(e.id)}><Trash2 size={15} /></button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ================= Stages ================= */
+function Stages({ house, persist }) {
+  const [open, setOpen] = useState(null);
+  const updateStage = async (key, patch) => {
+    await persist({ ...house, stages: house.stages.map((s) => (s.key === key ? { ...s, ...patch } : s)) });
+  };
+  return (
+    <div style={S.list}>
+      {house.stages.map((s) => {
+        const isOpen = open === s.key;
+        const compDone = s.completionItems.filter((i) => i.done).length;
+        const matOrdered = s.materialItems.filter((m) => m.ordered).length;
+        return (
+          <div key={s.key} style={{ ...S.stageCard, borderColor: s.done ? "#b7d9b8" : "#e8e1d4" }}>
+            <div style={S.stageHead}>
+              <button style={S.checkBtn} onClick={() => updateStage(s.key, { done: !s.done })}>
+                <div style={{ ...S.checkbox, background: s.done ? "#2e7d32" : "#fff", borderColor: s.done ? "#2e7d32" : "#c9beac" }}>
+                  {s.done && <span style={{ color: "#fff", fontSize: 13 }}>✓</span>}
+                </div>
+              </button>
+              <div style={{ flex: 1, cursor: "pointer" }} onClick={() => setOpen(isOpen ? null : s.key)}>
+                <div style={{ fontWeight: 600, color: s.done ? "#5a7a5a" : "#2b2620", textDecoration: s.done ? "line-through" : "none" }}>{s.name}</div>
+                <div style={{ fontSize: 12, color: "#9a8f7a" }}>
+                  {compDone}/{s.completionItems.length} tasks · {matOrdered}/{s.materialItems.length} materials{s.estimatedCost ? ` · est ${money(s.estimatedCost)}` : ""}
+                </div>
+              </div>
+              <button style={S.iconGhost} onClick={() => setOpen(isOpen ? null : s.key)}>{isOpen ? <ChevronDown size={18} /> : <ChevronRight size={18} />}</button>
+            </div>
+            {isOpen && (
+              <div style={S.stageBody}>
+                <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
+                  <label style={{ fontSize: 12, color: "#8a8275" }}>Stage est. cost</label>
+                  <input style={{ ...S.input, width: 140 }} type="number" step="0.01" value={s.estimatedCost || ""} onChange={(e) => updateStage(s.key, { estimatedCost: Number(e.target.value) || 0 })} placeholder="0.00" />
+                </div>
+                <ChecklistBlock title="Completion checklist" icon={<CheckSquare size={14} />} items={s.completionItems} placeholder="Add task to complete this stage…"
+                  onAdd={(text) => updateStage(s.key, { completionItems: [...s.completionItems, { id: uid(), text, done: false }] })}
+                  onToggle={(id) => updateStage(s.key, { completionItems: s.completionItems.map((i) => i.id === id ? { ...i, done: !i.done } : i) })}
+                  onRemove={(id) => updateStage(s.key, { completionItems: s.completionItems.filter((i) => i.id !== id) })}
+                  toggleField="done" />
+                <ChecklistBlock title="Materials to order" icon={<Package size={14} />} items={s.materialItems} placeholder="Add material to order…"
+                  onAdd={(text) => updateStage(s.key, { materialItems: [...s.materialItems, { id: uid(), text, ordered: false }] })}
+                  onToggle={(id) => updateStage(s.key, { materialItems: s.materialItems.map((i) => i.id === id ? { ...i, ordered: !i.ordered } : i) })}
+                  onRemove={(id) => updateStage(s.key, { materialItems: s.materialItems.filter((i) => i.id !== id) })}
+                  toggleField="ordered" toggleLabel="ordered" />
+                <textarea style={S.textarea} placeholder="Notes for this stage…" value={s.note} onChange={(e) => updateStage(s.key, { note: e.target.value })} />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ChecklistBlock({ title, icon, items, placeholder, onAdd, onToggle, onRemove, toggleField, toggleLabel }) {
+  const [text, setText] = useState("");
+  const submit = () => { if (text.trim()) { onAdd(text.trim()); setText(""); } };
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={S.checklistTitle}>{icon} {title}</div>
+      {items.map((i) => (
+        <div key={i.id} style={S.checkItem}>
+          <button style={S.checkBtnSm} onClick={() => onToggle(i.id)}>
+            <div style={{ ...S.checkboxSm, background: i[toggleField] ? "#8a5a2b" : "#fff", borderColor: i[toggleField] ? "#8a5a2b" : "#c9beac" }}>
+              {i[toggleField] && <span style={{ color: "#fff", fontSize: 11 }}>✓</span>}
+            </div>
+          </button>
+          <span style={{ flex: 1, fontSize: 14, color: i[toggleField] ? "#9a8f7a" : "#2b2620", textDecoration: i[toggleField] ? "line-through" : "none" }}>
+            {i.text}{toggleLabel && i[toggleField] ? " ✓ ordered" : ""}
+          </span>
+          <button style={S.iconDangerSm} onClick={() => onRemove(i.id)}><X size={13} /></button>
+        </div>
+      ))}
+      <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+        <input style={{ ...S.input, flex: 1 }} placeholder={placeholder} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} />
+        <button style={S.ghostBtn} onClick={submit}><Plus size={15} /></button>
+      </div>
+    </div>
+  );
+}
+
+/* ================= Photos ================= */
+function Photos({ house, persist }) {
+  const [busy, setBusy] = useState(false);
+  const [caption, setCaption] = useState("");
+  const fileRef = useRef();
+
+  const onFiles = async (e) => {
+    const files = Array.from(e.target.files || []); if (!files.length) return;
+    setBusy(true);
+    const added = [];
+    for (const f of files) {
+      try {
+        const data = await fileToCompressedDataURL(f);
+        const img = await uploadImage(house.id, "photos", data);
+        added.push({ id: uid(), caption, url: img.url, path: img.path, date: new Date().toISOString().slice(0, 10) });
+      } catch { /* skip */ }
+    }
+    await persist({ ...house, photos: [...added, ...house.photos] });
+    setCaption(""); setBusy(false);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const remove = async (p) => {
+    await removeImage(p.path);
+    await persist({ ...house, photos: house.photos.filter((x) => x.id !== p.id) });
+  };
+
+  return (
+    <div>
+      <div style={S.formCard}>
+        <input style={S.input} placeholder="Caption for next upload (optional)" value={caption} onChange={(e) => setCaption(e.target.value)} />
+        <label style={{ ...S.uploadBtn, marginTop: 10, justifyContent: "center" }}>
+          <Camera size={16} /> {busy ? "Uploading…" : "Take / Upload Photos"}
+          <input ref={fileRef} type="file" accept="image/*" capture="environment" multiple onChange={onFiles} style={{ display: "none" }} />
+        </label>
+      </div>
+      <div style={S.photoGrid}>
+        {house.photos.map((p) => (
+          <div key={p.id} style={S.photoCard}>
+            <img src={p.url} alt={p.caption} style={S.photoImg} onClick={() => window.open(p.url)} />
+            <div style={S.photoMeta}>
+              <div style={{ fontSize: 12, color: "#2b2620", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.caption || p.date}</div>
+              <button style={S.iconDangerSm} onClick={() => remove(p)}><Trash2 size={13} /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+      {house.photos.length === 0 && <div style={S.empty}><Camera size={36} strokeWidth={1.3} color="#c9beac" /><p style={{ color: "#9a8f7a", marginTop: 10 }}>No photos yet.</p></div>}
+    </div>
+  );
+}
+
+/* ================= Styles ================= */
+const S = {
+  app: { fontFamily: "'Inter', -apple-system, system-ui, sans-serif", background: "#f7f4ee", minHeight: "100vh", color: "#2b2620" },
+  loading: { padding: 60, textAlign: "center", color: "#9a8f7a", fontFamily: "system-ui", minHeight: "100vh", background: "#f7f4ee" },
+  container: { maxWidth: 860, margin: "0 auto", padding: "20px 18px 60px" },
+
+  authWrap: { minHeight: "100vh", background: "#2b2620", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', system-ui, sans-serif", padding: 20 },
+  authCard: { background: "#fff", borderRadius: 16, padding: "34px 28px", width: "100%", maxWidth: 360, display: "flex", flexDirection: "column", alignItems: "center", boxSizing: "border-box" },
+  logoMarkLg: { width: 56, height: 56, borderRadius: 14, background: "#8a5a2b", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 },
+  authTitle: { fontWeight: 800, letterSpacing: 1.5, fontSize: 18, color: "#2b2620" },
+  authSub: { fontSize: 12, color: "#c9a06b", letterSpacing: 1, marginBottom: 22, fontWeight: 600 },
+  authErr: { color: "#b3261e", fontSize: 13, marginTop: 10, textAlign: "center" },
+  linkBtn: { background: "none", border: "none", color: "#8a5a2b", fontSize: 13, cursor: "pointer", marginTop: 16, fontWeight: 600, fontFamily: "inherit" },
+  authFoot: { color: "#7a7266", fontSize: 11, marginTop: 20, letterSpacing: 0.5 },
+
+  header: { background: "#2b2620", padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" },
+  logo: { display: "flex", alignItems: "center", gap: 11 },
+  logoMark: { width: 34, height: 34, borderRadius: 8, background: "#8a5a2b", display: "flex", alignItems: "center", justifyContent: "center" },
+  logoText: { color: "#fff", fontWeight: 700, letterSpacing: 1, fontSize: 15 },
+  logoSub: { color: "#c9a06b", fontSize: 11, letterSpacing: 0.5 },
+  headerRight: { display: "flex", alignItems: "center", gap: 12 },
+  userEmail: { color: "#b8ac97", fontSize: 12, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  logoutBtn: { background: "#3a332c", border: "none", borderRadius: 8, color: "#c9a06b", padding: 8, cursor: "pointer", display: "flex" },
+
+  listHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 },
+  h2: { fontSize: 20, fontWeight: 700, margin: 0, color: "#2b2620" },
+  h3: { fontSize: 15, fontWeight: 700, margin: "26px 0 12px", color: "#4a4238" },
+  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 14 },
+  houseCard: { background: "#fff", border: "1px solid #e8e1d4", borderRadius: 12, padding: 16, display: "flex", gap: 8, alignItems: "flex-start" },
+  houseIcon: { width: 34, height: 34, borderRadius: 8, background: "#f2e6d5", display: "flex", alignItems: "center", justifyContent: "center" },
+  houseName: { fontWeight: 700, fontSize: 15, color: "#2b2620" },
+  progressTrack: { height: 6, background: "#eee6d8", borderRadius: 4, overflow: "hidden", margin: "4px 0 8px" },
+  progressFill: { height: "100%", background: "#2e7d32", borderRadius: 4 },
+  cardStats: { display: "flex", justifyContent: "space-between", fontSize: 12, color: "#8a8275" },
+
+  houseBar: { background: "#fff", borderBottom: "1px solid #e8e1d4", padding: "12px 18px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" },
+  backBtn: { display: "flex", alignItems: "center", gap: 6, background: "#f2ede4", border: "1px solid #e0d8c8", borderRadius: 8, padding: "7px 12px", fontSize: 13, color: "#5a5045", cursor: "pointer", fontWeight: 500 },
+  houseTitle: { fontWeight: 700, fontSize: 17, color: "#2b2620" },
+  houseAddr: { fontSize: 12, color: "#8a8275" },
+
+  tabBar: { background: "#fff", borderBottom: "1px solid #e8e1d4", padding: "0 12px", display: "flex", gap: 2, overflowX: "auto" },
+  tab: { display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", borderBottom: "2px solid transparent", padding: "12px 14px", fontSize: 13.5, color: "#8a8275", cursor: "pointer", fontWeight: 500, whiteSpace: "nowrap" },
+  tabActive: { color: "#8a5a2b", borderBottomColor: "#8a5a2b", fontWeight: 600 },
+
+  metricGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 },
+  metric: { background: "#fff", border: "1px solid #eee6d8", borderRadius: 10, padding: "14px 16px" },
+  metricLabel: { fontSize: 12, color: "#9a8f7a", marginBottom: 5 },
+  metricValue: { fontSize: 22, fontWeight: 700 },
+
+  stageStrip: { display: "flex", flexWrap: "wrap", gap: 6 },
+  stageDot: { width: 26, height: 26, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700 },
+  actionBtn: { display: "flex", alignItems: "center", gap: 7, background: "#fff", border: "1px solid #e0d8c8", borderRadius: 9, padding: "10px 16px", fontSize: 14, color: "#5a5045", cursor: "pointer", fontWeight: 600 },
+
+  primaryBtn: { display: "flex", alignItems: "center", gap: 6, background: "#8a5a2b", color: "#fff", border: "none", borderRadius: 8, padding: "9px 15px", fontSize: 13.5, cursor: "pointer", fontWeight: 600 },
+  ghostBtn: { display: "flex", alignItems: "center", gap: 6, background: "#f2ede4", color: "#5a5045", border: "1px solid #e0d8c8", borderRadius: 8, padding: "9px 13px", fontSize: 13.5, cursor: "pointer", fontWeight: 500 },
+  uploadBtn: { display: "flex", alignItems: "center", gap: 7, background: "#f2e6d5", color: "#8a5a2b", border: "1px dashed #c9a06b", borderRadius: 8, padding: "9px 14px", fontSize: 13.5, cursor: "pointer", fontWeight: 600 },
+
+  input: { border: "1px solid #ddd4c4", borderRadius: 8, padding: "9px 11px", fontSize: 14, fontFamily: "inherit", color: "#2b2620", background: "#fff", outline: "none", boxSizing: "border-box" },
+  textarea: { border: "1px solid #ddd4c4", borderRadius: 8, padding: "9px 11px", fontSize: 14, fontFamily: "inherit", color: "#2b2620", background: "#fff", outline: "none", width: "100%", minHeight: 64, boxSizing: "border-box", resize: "vertical" },
+
+  addCard: { background: "#fff", border: "1px solid #e8e1d4", borderRadius: 12, padding: 16, marginBottom: 16, display: "flex", flexDirection: "column", gap: 10 },
+  formCard: { background: "#fff", border: "1px solid #e8e1d4", borderRadius: 12, padding: 16, marginBottom: 16 },
+  formGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 },
+
+  subHead: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 4px 10px", fontSize: 13, color: "#8a8275" },
+  list: { display: "flex", flexDirection: "column", gap: 8 },
+  receiptRow: { display: "flex", alignItems: "center", gap: 12, background: "#fff", border: "1px solid #eee6d8", borderRadius: 10, padding: "10px 12px" },
+  receiptThumb: { width: 44, height: 44, borderRadius: 6, objectFit: "cover", cursor: "pointer", border: "1px solid #e0d8c8" },
+  receiptNoPhoto: { width: 44, height: 44, borderRadius: 6, background: "#f4efe7", display: "flex", alignItems: "center", justifyContent: "center" },
+  thumb: { width: 40, height: 40, borderRadius: 6, objectFit: "cover", border: "1px solid #e0d8c8" },
+
+  tableWrap: { background: "#fff", border: "1px solid #eee6d8", borderRadius: 10, overflow: "hidden" },
+  table: { width: "100%", borderCollapse: "collapse", fontSize: 13.5 },
+  th: { textAlign: "left", padding: "11px 14px", background: "#f4efe7", color: "#7a7266", fontWeight: 600, fontSize: 12, borderBottom: "1px solid #eee6d8" },
+  td: { padding: "10px 14px", borderBottom: "1px solid #f2ede4", color: "#3a352d" },
+  totalRow: { fontWeight: 700, background: "#faf7f1", borderTop: "2px solid #e0d8c8", color: "#2b2620" },
+
+  stageCard: { background: "#fff", border: "1px solid #e8e1d4", borderRadius: 11, overflow: "hidden" },
+  stageHead: { display: "flex", alignItems: "center", gap: 10, padding: "12px 14px" },
+  stageBody: { padding: "4px 16px 18px", borderTop: "1px solid #f2ede4" },
+  checkBtn: { background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex" },
+  checkBtnSm: { background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex" },
+  checkbox: { width: 22, height: 22, borderRadius: 6, border: "2px solid #c9beac", display: "flex", alignItems: "center", justifyContent: "center" },
+  checkboxSm: { width: 18, height: 18, borderRadius: 5, border: "2px solid #c9beac", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  checklistTitle: { display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: "#8a5a2b", textTransform: "uppercase", letterSpacing: 0.4, margin: "12px 0 8px" },
+  checkItem: { display: "flex", alignItems: "center", gap: 9, padding: "5px 0" },
+
+  photoGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 },
+  photoCard: { background: "#fff", border: "1px solid #eee6d8", borderRadius: 10, overflow: "hidden" },
+  photoImg: { width: "100%", height: 130, objectFit: "cover", cursor: "pointer", display: "block" },
+  photoMeta: { display: "flex", alignItems: "center", gap: 6, padding: "7px 9px" },
+
+  iconGhost: { background: "none", border: "none", cursor: "pointer", color: "#9a8f7a", display: "flex", padding: 4 },
+  iconDanger: { background: "none", border: "none", cursor: "pointer", color: "#c08a7a", display: "flex", padding: 4 },
+  iconDangerSm: { background: "none", border: "none", cursor: "pointer", color: "#c08a7a", display: "flex", padding: 2 },
+  empty: { textAlign: "center", padding: "50px 20px" },
+};
+
+/* ================= Render ================= */
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
